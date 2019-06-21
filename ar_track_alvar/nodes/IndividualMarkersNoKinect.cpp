@@ -80,6 +80,10 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg);
 
 void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 {
+
+	static int last_id_ = -1;
+	static Pose last_pose_ = Pose();
+	static ros::WallTime last_tracktime_ = ros::WallTime::now();
     //If we've already gotten the cam info, then go ahead
 	if(cam->getCamInfo_){
 		try{
@@ -105,11 +109,20 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 
             marker_detector.Detect(&ipl_image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true);
             arPoseMarkers_.markers.clear ();
+
+			ros::WallDuration t_diff = ros::WallTime::now() - last_tracktime_;
+			float delta_time = t_diff.toSec();
+			if(delta_time>0.5 && last_id_ != -1)
+			{
+				last_tracktime_ = ros::WallTime::now();
+				last_id_ = -1;
+			}
 			for (size_t i=0; i<marker_detector.markers->size(); i++)
 			{
 				//Get the pose relative to the camera
-        		int id = (*(marker_detector.markers))[i].GetId();
+        int id = (*(marker_detector.markers))[i].GetId();
 				Pose p = (*(marker_detector.markers))[i].pose;
+
 				double px = p.translation[0]/100.0;
 				double py = p.translation[1]/100.0;
 				double pz = p.translation[2]/100.0;
@@ -118,20 +131,44 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 				double qz = p.quaternion[3];
 				double qw = p.quaternion[0];
 
-                tf::Quaternion rotation (qx,qy,qz,qw);
-                tf::Vector3 origin (px,py,pz);
-                tf::Transform t (rotation, origin);
-                tf::Vector3 markerOrigin (0, 0, 0);
-                tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
-                tf::Transform markerPose = t * m; // marker pose in the camera frame
+        if(std::isnan(px)|| std::isnan(py)||std::isnan(pz)||std::isnan(qx)||std::isnan(qy)||std::isnan(qz)||std::isnan(qw))
+				{
+					continue;
+				}
+				if(std::isinf(px)|| std::isinf(py)||std::isinf(pz)||std::isinf(qx)||std::isinf(qy)||std::isinf(qz)||std::isinf(qw))
+				{
+					continue;
+				}
+				float vx =0 ,vy = 0;
+				if(id == last_id_)
+				{
+					vx = std::fabs(px - last_pose_.translation[0]/100.0)/delta_time;
+					vy = std::fabs(py - last_pose_.translation[1]/100.0)/delta_time;
 
-                tf::Vector3 z_axis_cam = tf::Transform(rotation, tf::Vector3(0,0,0)) * tf::Vector3(0, 0, 1);
-//                ROS_INFO("%02i Z in cam frame: %f %f %f",id, z_axis_cam.x(), z_axis_cam.y(), z_axis_cam.z());
-                /// as we can't see through markers, this one is false positive detection
-                if (z_axis_cam.z() > 0)
-                {
-                    continue;
-                }
+					ROS_ERROR("%f %f %f",vx,vy,delta_time);
+				}
+				if(vx>0.8||vy>0.8)
+				{
+					continue;
+				}
+				last_id_ = id;
+				last_pose_ = p;
+        last_tracktime_ = ros::WallTime::now();
+
+        tf::Quaternion rotation (qx,qy,qz,qw);
+        tf::Vector3 origin (px,py,pz);
+        tf::Transform t (rotation, origin);
+        tf::Vector3 markerOrigin (0, 0, 0);
+        tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
+        tf::Transform markerPose = t * m; // marker pose in the camera frame
+
+        tf::Vector3 z_axis_cam = tf::Transform(rotation, tf::Vector3(0,0,0)) * tf::Vector3(0, 0, 1);
+//      ROS_INFO("%02i Z in cam frame: %f %f %f",id, z_axis_cam.x(), z_axis_cam.y(), z_axis_cam.z());
+        /// as we can't see through markers, this one is false positive detection
+        if (z_axis_cam.z() > 0)
+        {
+            continue;
+        }
 
 				//Publish the transform from the camera to the marker
 				std::string markerFrame = "ar_marker_";
