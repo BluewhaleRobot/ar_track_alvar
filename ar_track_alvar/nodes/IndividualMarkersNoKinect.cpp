@@ -144,11 +144,10 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 				{
 					vx = std::fabs(px - last_pose_.translation[0]/100.0)/delta_time;
 					vy = std::fabs(py - last_pose_.translation[1]/100.0)/delta_time;
-
-					ROS_ERROR("%f %f %f",vx,vy,delta_time);
 				}
 				if(vx>0.8||vy>0.8)
 				{
+					ROS_DEBUG("%f %f %f",vx,vy,delta_time);
 					continue;
 				}
 				last_id_ = id;

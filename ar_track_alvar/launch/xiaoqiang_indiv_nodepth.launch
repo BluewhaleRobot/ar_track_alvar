@@ -21,5 +21,5 @@
     <param name="max_frequency" type="double" value="20" />
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="templink_broadcaster" args="0.33 0 0.0 -0.504, 0.484, -0.502, 0.509  base_link head_camera 50"/>
+  <node pkg="tf" type="static_transform_publisher" name="templink_broadcaster" args="-0.33 0 0.0 -0.488, -0.503, 0.506, 0.502  base_link head_camera 50"/>
 </launch>
