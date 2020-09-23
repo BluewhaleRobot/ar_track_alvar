@@ -2,9 +2,9 @@
 	<arg name="marker_size" default="12.0" />
 	<arg name="max_new_marker_error" default="0.08" />
 	<arg name="max_track_error" default="0.2" />
-	<arg name="cam_image_topic" default="/camera_node/image_raw" />
-	<arg name="cam_info_topic" default="/camera_node/camera_info" />
-	<arg name="output_frame" default="head_camera" />
+	<arg name="cam_image_topic" default="/multi/back/image_raw" />
+	<arg name="cam_info_topic" default="/multi/back/camera_info" />
+	<arg name="output_frame" default="cam_back" />
 
 	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="true" respawn_delay="10" output="screen">
 		<param name="marker_size"           type="double" value="$(arg marker_size)" />
@@ -21,5 +21,5 @@
     <param name="max_frequency" type="double" value="20" />
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="templink_broadcaster" args="-0.33 0 0.0 -0.488, -0.503, 0.506, 0.502  base_link head_camera 50"/>
+  <node pkg="tf" type="static_transform_publisher" name="templink_broadcaster" args="-0.33 0 0.0 -0.488, -0.503, 0.506, 0.502  base_link cam_back 50"/>
 </launch>
